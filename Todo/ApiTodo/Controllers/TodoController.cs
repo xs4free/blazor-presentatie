@@ -1,0 +1,76 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Todos;
+
+namespace ApiTodo.Controllers
+{
+    [ApiController]
+    [Route("/api/todos")]
+    public class TodoController : ControllerBase
+    {
+        private readonly TodoDbContext _db;
+        public TodoController(TodoDbContext db)
+        {
+            _db = db ?? throw new ArgumentNullException(nameof(db));
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<List<Todo>>> GetAll()
+        {
+            var todos = await _db.Todos.ToListAsync();
+
+            return todos;
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Todo>> Get(long id)
+        {
+            var todo = await _db.Todos.FindAsync(id);
+            if (todo == null)
+            {
+                return NotFound();
+            }
+
+            return todo;
+        }
+
+        [HttpPost]
+        public async Task Post(Todo todo)
+        {
+            _db.Todos.Add(todo);
+            await _db.SaveChangesAsync();
+        }
+
+        [HttpPost("{id}")]
+        public async Task<IActionResult> MarkAsComplete(long id, Todo todo)
+        {
+            var dbTodo = await _db.Todos.FindAsync(id);
+            if (dbTodo == null)
+            {
+                return NotFound();
+            }
+
+            dbTodo.IsComplete = todo.IsComplete;
+            await _db.SaveChangesAsync();
+            
+            return Ok(dbTodo);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(long id)
+        {
+            var todo = await _db.Todos.FindAsync(id);
+            if (todo == null)
+            {
+                return NotFound();
+            }
+
+            _db.Todos.Remove(todo);
+            await _db.SaveChangesAsync();
+            return Ok();
+        }
+    }
+}

@@ -1,0 +1,65 @@
+﻿@using Microsoft.AspNetCore.Components.Web
+@using System.Net.Http
+@inject HttpClient Http
+@page "/mytodos"
+
+<section class="todoapp">
+    <header class="header">
+        <h1>todos</h1>
+        <form @onsubmit="AddTodo">
+            <input class="new-todo" placeholder="What needs to be done?" @bind="newTodo" autofocus="">
+        </form>
+    </header>
+    <section class="main" style="display: block;">
+        <input class="toggle-all" id="toggle-all" type="checkbox">
+        <label for="toggle-all">Mark all as complete</label>
+        <ul class="todo-list">
+            @foreach (var todo in Todos)
+            {
+                <li class="@(todo.IsComplete ? "completed": "")">
+                    <div class="view">
+                        <input class="toggle" type="checkbox" @onchange="@(e => MarkCompleted((bool)e.Value, todo))" checked="@todo.IsComplete">
+                        <label>@todo.Name</label>
+                        <button class="destroy" @onclick="@(() => DeleteTodo(todo))"></button>
+                    </div>
+                    <input class="edit" value="@todo.Name">
+                </li>
+            }
+        </ul>
+    </section>
+</section>
+
+@code {
+    string todoApi = "https://localhost:44358/api/todos";
+    string newTodo;
+
+    public List<Todo> Todos { get; set; } = new List<Todo>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Todos = await Http.GetJsonAsync<List<Todo>>(todoApi);
+    }
+
+    async Task AddTodo()
+    {
+        await Http.PostJsonAsync(todoApi, new Todo { Name = newTodo });
+
+        Todos = await Http.GetJsonAsync<List<Todo>>(todoApi);
+
+        newTodo = null;
+    }
+
+    async Task MarkCompleted(bool isComplete, Todo todo)
+    {
+        todo.IsComplete = isComplete;
+
+        await Http.PostJsonAsync($"{todoApi}/{todo.Id}", todo);
+    }
+
+    async Task DeleteTodo(Todo todo)
+    {
+        await Http.DeleteAsync($"{todoApi}/{todo.Id}");
+
+        Todos = await Http.GetJsonAsync<List<Todo>>(todoApi);
+    }
+}
